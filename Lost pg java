@@ -1,0 +1,318 @@
+// Global variables
+let currentUser = null;
+let allFoundItems = [];
+
+// ========== INITIALIZATION ==========
+document.addEventListener('DOMContentLoaded', () => {
+    checkAuth();
+    loadFoundItems();
+});
+
+async function checkAuth() {
+    try {
+        const response = await fetch('/api/me');
+        currentUser = await response.json();
+        
+        if (!currentUser) {
+            window.location.href = 'index.html';
+            return;
+        }
+        
+        const userInfo = document.getElementById('userInfo');
+        if (userInfo) {
+            userInfo.innerHTML = `Logged in as: ${currentUser.username}`;
+        }
+    } catch (error) {
+        console.error('Auth check failed:', error);
+        window.location.href = 'index.html';
+    }
+}
+
+async function logout() {
+    await fetch('/api/logout', { method: 'POST' });
+    window.location.href = 'index.html';
+}
+
+// ========== TAB SWITCHING ==========
+function switchTab(tabName) {
+    const tabs = document.querySelectorAll('.tab');
+    const contents = document.querySelectorAll('.tab-content');
+    
+    tabs.forEach(t => t.classList.remove('active'));
+    contents.forEach(c => c.classList.remove('active'));
+    
+    if (tabName === 'lost') {
+        tabs[0].classList.add('active');
+        document.getElementById('lostTab').classList.add('active');
+    } else {
+        tabs[1].classList.add('active');
+        document.getElementById('foundTab').classList.add('active');
+    }
+}
+
+// ========== LOAD FOUND ITEMS ==========
+async function loadFoundItems() {
+    try {
+        const response = await fetch('/api/found-items');
+        allFoundItems = await response.json();
+        displayFoundItems(allFoundItems);
+    } catch (error) {
+        console.error('Error loading items:', error);
+        const container = document.getElementById('searchResults');
+        if (container) {
+            container.innerHTML = '<div class="loading">Error loading items. Make sure server is running.</div>';
+        }
+    }
+}
+
+// ========== DISPLAY FOUND ITEMS ==========
+function displayFoundItems(items) {
+    const container = document.getElementById('searchResults');
+    
+    if (!container) return;
+    
+    if (items.length === 0) {
+        container.innerHTML = '<div class="loading">No items found yet. Be the first to report a found item.</div>';
+        return;
+    }
+    
+    container.innerHTML = items.map(item => `
+        <div class="item-card">
+            ${item.photo_url ? `<img src="${item.photo_url}" alt="${item.title}">` : '<div style="height:200px; background:#1a1a1a; display:flex; align-items:center; justify-content:center;">No image</div>'}
+            <div class="item-card-content">
+                <h3>${escapeHtml(item.title)}</h3>
+                <p><span class="label">Color:</span> ${escapeHtml(item.color)}</p>
+                ${item.brand ? `<p><span class="label">Brand:</span> ${escapeHtml(item.brand)}</p>` : ''}
+                <p><span class="label">Type:</span> ${escapeHtml(item.item_type || 'Other')}</p>
+                <p><span class="label">Description:</span> ${escapeHtml(item.public_description)}</p>
+                <p><span class="label">Location:</span> ${escapeHtml(item.location)}</p>
+                <p><span class="label">Found:</span> ${item.found_date} at ${item.found_time}</p>
+                <span class="badge badge-open">Available to Claim</span>
+                <button onclick="startVerification(${item.id})" style="margin-top: 15px; width: 100%;">Verify and Claim</button>
+            </div>
+        </div>
+    `).join('');
+}
+
+// ========== VERIFICATION FIELDS TOGGLE ==========
+function toggleVerificationFields() {
+    const itemType = document.getElementById('itemType').value;
+    const electronicFields = document.getElementById('electronicFields');
+    const moneyFields = document.getElementById('moneyFields');
+    const otherFields = document.getElementById('otherFields');
+    
+    electronicFields.classList.add('hidden');
+    moneyFields.classList.add('hidden');
+    otherFields.classList.add('hidden');
+    
+    if (itemType === 'electronic') {
+        electronicFields.classList.remove('hidden');
+    } else if (itemType === 'money') {
+        moneyFields.classList.remove('hidden');
+    } else if (itemType === 'other') {
+        otherFields.classList.remove('hidden');
+    }
+}
+
+// ========== AUTO-GENERATE VERIFICATION QUESTIONS ==========
+function generateVerificationQuestions(itemType, privateData) {
+    const questions = [];
+    
+    if (itemType === 'electronic') {
+        if (privateData.wallpaper && privateData.wallpaper.trim()) {
+            questions.push(`Describe the wallpaper or lock screen image on the device.`);
+        }
+        if (privateData.passcode && privateData.passcode.trim()) {
+            questions.push(`What is the device passcode or pattern?`);
+        }
+        questions.push(`What apps or folders are on the home screen?`);
+        questions.push(`What color is the device?`);
+        questions.push(`Are there any scratches or damages on the device?`);
+    } 
+    else if (itemType === 'money') {
+        if (privateData.amount && privateData.amount > 0) {
+            questions.push(`What is the exact amount of money?`);
+        }
+        if (privateData.currency && privateData.currency !== '') {
+            questions.push(`What currency type is the money?`);
+        }
+        questions.push(`What container or wallet was the money in?`);
+        questions.push(`Describe the appearance of the money (folded, crumpled, etc.)`);
+    }
+    else {
+        if (privateData.uniqueFeature && privateData.uniqueFeature.trim()) {
+            questions.push(`Describe the unique identifying feature of this item.`);
+        }
+        questions.push(`What color is the item?`);
+        questions.push(`Are there any scratches, marks, or damages on the item?`);
+        questions.push(`What is inside the item (if applicable)?`);
+    }
+    
+    // Remove duplicates and limit to 5 questions
+    return [...new Set(questions)].slice(0, 5);
+}
+
+// ========== REPORT FOUND ITEM ==========
+async function reportFoundItem(event) {
+    event.preventDefault();
+    
+    const itemType = document.getElementById('itemType').value;
+    
+    if (!itemType) {
+        alert('Please select an item type');
+        return;
+    }
+    
+    const formData = new FormData();
+    
+    // Public info
+    formData.append('title', document.getElementById('itemTitle').value);
+    formData.append('color', document.getElementById('itemColor').value);
+    formData.append('brand', document.getElementById('itemBrand').value);
+    formData.append('public_description', document.getElementById('publicDescription').value);
+    formData.append('location', document.getElementById('foundLocation').value);
+    formData.append('found_date', document.getElementById('foundDate').value);
+    formData.append('found_time', document.getElementById('foundTime').value);
+    formData.append('item_type', itemType);
+    formData.append('photo', document.getElementById('itemPhoto').files[0]);
+    
+    // Private verification info based on type
+    let privateData = {};
+    
+    if (itemType === 'electronic') {
+        privateData.wallpaper = document.getElementById('wallpaperDescription').value;
+        privateData.passcode = document.getElementById('devicePasscode').value;
+        formData.append('verification_info', JSON.stringify(privateData));
+    } 
+    else if (itemType === 'money') {
+        privateData.amount = document.getElementById('moneyAmount').value;
+        privateData.currency = document.getElementById('currencyType').value;
+        formData.append('verification_info', JSON.stringify(privateData));
+    }
+    else {
+        privateData.uniqueFeature = document.getElementById('uniqueFeature').value;
+        formData.append('verification_info', JSON.stringify(privateData));
+    }
+    
+    // Auto-generate questions
+    const autoQuestions = generateVerificationQuestions(itemType, privateData);
+    formData.append('auto_questions', JSON.stringify(autoQuestions));
+    
+    try {
+        const response = await fetch('/api/found-items', {
+            method: 'POST',
+            body: formData
+        });
+        
+        const data = await response.json();
+        
+        if (data.success) {
+            alert('Found item reported successfully!\n\nAuto-generated verification questions:\n- ' + autoQuestions.join('\n- '));
+            document.getElementById('foundItemForm').reset();
+            toggleVerificationFields();
+            loadFoundItems();
+            switchTab('lost');
+        } else {
+            alert('Error: ' + data.error);
+        }
+    } catch (error) {
+        alert('Error reporting item. Please make sure the server is running.');
+        console.error(error);
+    }
+}
+
+// ========== START VERIFICATION PROCESS ==========
+async function startVerification(itemId) {
+    try {
+        // Get the item details
+        const itemResponse = await fetch(`/api/found-items/${itemId}`);
+        const item = await itemResponse.json();
+        
+        // Get the auto-generated questions for this item
+        const questionsResponse = await fetch(`/api/items/${itemId}/questions`);
+        const questions = await questionsResponse.json();
+        
+        if (!questions || questions.length === 0) {
+            alert('No verification questions available for this item yet.');
+            return;
+        }
+        
+        const modalBody = document.getElementById('verifyModalBody');
+        modalBody.innerHTML = `
+            <div id="verificationQuestions">
+                <p style="margin-bottom: 15px; color: #d0c0a0;">Please answer these questions to verify you are the owner:</p>
+                ${questions.map((q, index) => `
+                    <div class="question-card">
+                        <p><strong>Question ${index + 1}:</strong> ${escapeHtml(q.question)}</p>
+                        <textarea id="answer_${q.id}" placeholder="Your answer..." rows="3"></textarea>
+                    </div>
+                `).join('')}
+            </div>
+            <button onclick="submitVerification(${itemId})" style="width: 100%; margin-top: 10px;">Submit Answers</button>
+        `;
+        document.getElementById('verifyModal').style.display = 'flex';
+    } catch (error) {
+        alert('Error loading verification questions');
+        console.error(error);
+    }
+}
+
+// ========== SUBMIT VERIFICATION ==========
+async function submitVerification(itemId) {
+    const questionDivs = document.querySelectorAll('#verificationQuestions .question-card');
+    const answers = [];
+    
+    for (let i = 0; i < questionDivs.length; i++) {
+        const textarea = questionDivs[i].querySelector('textarea');
+        const questionText = questionDivs[i].querySelector('p').innerText.replace('Question ' + (i+1) + ': ', '');
+        answers.push({ 
+            question: questionText, 
+            answer: textarea.value 
+        });
+    }
+    
+    // Check if all answers are filled
+    const emptyAnswers = answers.filter(a => !a.answer.trim());
+    if (emptyAnswers.length > 0) {
+        alert('Please answer all questions before submitting.');
+        return;
+    }
+    
+    try {
+        const response = await fetch('/api/verify-claim', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ 
+                item_id: itemId, 
+                answers: answers,
+                claimant_id: currentUser.id 
+            })
+        });
+        
+        const data = await response.json();
+        
+        if (data.success) {
+            alert('Your claim has been submitted! An operator will review your answers and contact you.');
+            closeVerifyModal();
+            loadFoundItems();
+        } else {
+            alert('Error: ' + data.error);
+        }
+    } catch (error) {
+        alert('Error submitting claim. Please try again.');
+        console.error(error);
+    }
+}
+
+// ========== MODAL FUNCTIONS ==========
+function closeVerifyModal() {
+    document.getElementById('verifyModal').style.display = 'none';
+}
+
+// ========== HELPER FUNCTIONS ==========
+function escapeHtml(text) {
+    if (!text) return '';
+    const div = document.createElement('div');
+    div.textContent = text;
+    return div.innerHTML;
+}
