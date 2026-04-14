@@ -1,0 +1,156 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Secure Lost and Found - Home</title>
+    <link rel="stylesheet" href="style.css">
+</head>
+<body>
+    <div class="container">
+        <!-- Navigation Bar -->
+        <nav class="navbar">
+            <div class="logo">
+                Secure Lost and Found
+            </div>
+            <div class="nav-links">
+                <span class="user-info" id="userInfo"></span>
+                <button class="nav-btn" onclick="logout()">Logout</button>
+            </div>
+        </nav>
+
+        <!-- Main Tabs -->
+        <div class="tabs">
+            <button class="tab active" onclick="switchTab('lost')">Lost Items</button>
+            <button class="tab" onclick="switchTab('found')">Report Found Item</button>
+        </div>
+
+        <!-- Lost Items Tab - Browse and Claim -->
+        <div id="lostTab" class="tab-content active">
+            <h2>Browse Found Items</h2>
+            <div id="searchResults" class="items-grid">
+                <div class="loading">Loading found items...</div>
+            </div>
+        </div>
+
+        <!-- Found Items Tab - Report Found Item -->
+        <div id="foundTab" class="tab-content">
+            <div class="form-container">
+                <h2>Report a Found Item</h2>
+                <form id="foundItemForm" onsubmit="reportFoundItem(event)">
+                    <div class="form-group">
+                        <label>Item Type *</label>
+                        <select id="itemType" required onchange="toggleVerificationFields()">
+                            <option value="">Select type</option>
+                            <option value="electronic">Electronic</option>
+                            <option value="money">Money Related</option>
+                            <option value="other">Other</option>
+                        </select>
+                    </div>
+                    
+                    <div class="form-group">
+                        <label>Title / Item Name *</label>
+                        <input type="text" id="itemTitle" required placeholder="e.g., Black Backpack, Silver iPad">
+                    </div>
+                    
+                    <div class="form-group">
+                        <label>Color *</label>
+                        <input type="text" id="itemColor" required placeholder="e.g., Black, Red, Blue">
+                    </div>
+                    
+                    <div class="form-group">
+                        <label>Brand / Model (if known)</label>
+                        <input type="text" id="itemBrand" placeholder="e.g., Apple, Nike, Samsung">
+                    </div>
+                    
+                    <div class="form-group">
+                        <label>Appearance / Description (visible to everyone) *</label>
+                        <textarea id="publicDescription" required placeholder="Describe what the item looks like from the outside..."></textarea>
+                    </div>
+                    
+                    <div class="form-group">
+                        <label>Location Found *</label>
+                        <input type="text" id="foundLocation" required placeholder="e.g., Central Park, Bus Station">
+                    </div>
+                    
+                    <div class="form-group">
+                        <label>Date Found *</label>
+                        <input type="date" id="foundDate" required>
+                    </div>
+                    
+                    <div class="form-group">
+                        <label>Time Found *</label>
+                        <input type="time" id="foundTime" required>
+                    </div>
+                    
+                    <!-- Electronic specific fields (hidden by default) -->
+                    <div id="electronicFields" class="hidden">
+                        <div class="form-group">
+                            <label style="color: #d0a060;">VERIFICATION: Wallpaper / Lock Screen Description (NOT shown publicly) *</label>
+                            <textarea id="wallpaperDescription" placeholder="Describe the wallpaper, lock screen image, or background of the device..."></textarea>
+                            <small>Only the system uses this to verify the real owner. Never shown publicly.</small>
+                        </div>
+                        <div class="form-group">
+                            <label style="color: #d0a060;">VERIFICATION: Device Passcode / Pattern (Optional)</label>
+                            <input type="text" id="devicePasscode" placeholder="Only if owner wants to verify this way">
+                            <small>This will NOT be shown to anyone. Used for verification only.</small>
+                        </div>
+                    </div>
+                    
+                    <!-- Money specific fields (hidden by default) -->
+                    <div id="moneyFields" class="hidden">
+                        <div class="form-group">
+                            <label style="color: #d0a060;">VERIFICATION: Exact Amount of Money (NOT shown publicly) *</label>
+                            <input type="number" id="moneyAmount" step="0.01" placeholder="Enter the exact amount">
+                            <small>Only the system uses this to verify the real owner.</small>
+                        </div>
+                        <div class="form-group">
+                            <label style="color: #d0a060;">VERIFICATION: Currency Type</label>
+                            <select id="currencyType">
+                                <option value="">Select currency</option>
+                                <option value="USD">USD - US Dollar</option>
+                                <option value="EUR">EUR - Euro</option>
+                                <option value="GBP">GBP - British Pound</option>
+                                <option value="JPY">JPY - Japanese Yen</option>
+                                <option value="CAD">CAD - Canadian Dollar</option>
+                                <option value="AUD">AUD - Australian Dollar</option>
+                                <option value="Other">Other</option>
+                            </select>
+                        </div>
+                    </div>
+                    
+                    <!-- Other category fields -->
+                    <div id="otherFields" class="hidden">
+                        <div class="form-group">
+                            <label style="color: #d0a060;">VERIFICATION: Unique identifying feature (NOT shown publicly) *</label>
+                            <textarea id="uniqueFeature" placeholder="Example: Small scratch on back, custom engraving, specific sticker..."></textarea>
+                            <small>Only the system uses this to verify the real owner.</small>
+                        </div>
+                    </div>
+                    
+                    <div class="form-group">
+                        <label>Public Photo *</label>
+                        <input type="file" id="itemPhoto" accept="image/*" required>
+                        <small>Cover the screen/wallpaper if taking photo of an electronic device</small>
+                    </div>
+                    
+                    <button type="submit">Submit Found Report</button>
+                </form>
+            </div>
+        </div>
+    </div>
+
+    <!-- Modal for verification questions when claiming -->
+    <div id="verifyModal" class="modal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h3>Verify Ownership</h3>
+                <span class="close" onclick="closeVerifyModal()">&times;</span>
+            </div>
+            <div id="verifyModalBody"></div>
+        </div>
+    </div>
+
+    <script src="home-script.js"></script>
+</body>
+</html>
