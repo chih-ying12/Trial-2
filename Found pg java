@@ -1,0 +1,301 @@
+// Global variables
+let currentUser = null;
+let allFoundItems = [];
+
+// ========== INITIALIZATION ==========
+document.addEventListener('DOMContentLoaded', () => {
+    checkAuth();
+    loadFoundItems();
+});
+
+async function checkAuth() {
+    try {
+        const response = await fetch('/api/me');
+        currentUser = await response.json();
+        
+        if (!currentUser) {
+            window.location.href = 'index.html';
+            return;
+        }
+        
+        const userInfo = document.getElementById('userInfo');
+        if (userInfo) {
+            userInfo.innerHTML = `Logged in as: ${currentUser.username}`;
+        }
+    } catch (error) {
+        console.error('Auth check failed:', error);
+        window.location.href = 'index.html';
+    }
+}
+
+async function logout() {
+    await fetch('/api/logout', { method: 'POST' });
+    window.location.href = 'index.html';
+}
+
+// ========== LOAD FOUND ITEMS ==========
+async function loadFoundItems() {
+    try {
+        const response = await fetch('/api/found-items');
+        allFoundItems = await response.json();
+        displayFoundItems(allFoundItems);
+        updateSearchStats(allFoundItems.length, allFoundItems.length);
+    } catch (error) {
+        console.error('Error loading items:', error);
+        const container = document.getElementById('searchResults');
+        if (container) {
+            container.innerHTML = '<div class="loading">Error loading items. Make sure server is running.</div>';
+        }
+    }
+}
+
+// ========== SEARCH FUNCTIONS ==========
+function performSearch() {
+    const keyword = document.getElementById('searchKeyword').value.toLowerCase();
+    
+    if (!keyword) {
+        displayFoundItems(allFoundItems);
+        updateSearchStats(allFoundItems.length, allFoundItems.length);
+        return;
+    }
+    
+    const filtered = allFoundItems.filter(item => {
+        return (item.title && item.title.toLowerCase().includes(keyword)) ||
+               (item.public_description && item.public_description.toLowerCase().includes(keyword)) ||
+               (item.brand && item.brand.toLowerCase().includes(keyword)) ||
+               (item.color && item.color.toLowerCase().includes(keyword)) ||
+               (item.location && item.location.toLowerCase().includes(keyword));
+    });
+    
+    displayFoundItems(filtered);
+    updateSearchStats(filtered.length, allFoundItems.length);
+}
+
+function clearSearch() {
+    document.getElementById('searchKeyword').value = '';
+    displayFoundItems(allFoundItems);
+    updateSearchStats(allFoundItems.length, allFoundItems.length);
+}
+
+// ========== ADVANCED FILTERS ==========
+function toggleAdvancedFilters() {
+    const filterContent = document.getElementById('advancedFilters');
+    const toggleBtn = document.querySelector('.filter-toggle-btn');
+    
+    if (filterContent.classList.contains('hidden')) {
+        filterContent.classList.remove('hidden');
+        toggleBtn.innerHTML = 'Advanced Filters ▲';
+    } else {
+        filterContent.classList.add('hidden');
+        toggleBtn.innerHTML = 'Advanced Filters ▼';
+    }
+}
+
+function applyAdvancedFilters() {
+    const color = document.getElementById('filterColor').value.toLowerCase();
+    const type = document.getElementById('filterType').value;
+    const brand = document.getElementById('filterBrand').value.toLowerCase();
+    const location = document.getElementById('filterLocation').value.toLowerCase();
+    const dateRange = document.getElementById('filterDate').value;
+    
+    let filtered = [...allFoundItems];
+    
+    if (color) {
+        filtered = filtered.filter(item => 
+            item.color && item.color.toLowerCase() === color
+        );
+    }
+    
+    if (type) {
+        filtered = filtered.filter(item => 
+            item.item_type === type
+        );
+    }
+    
+    if (brand) {
+        filtered = filtered.filter(item => 
+            item.brand && item.brand.toLowerCase().includes(brand)
+        );
+    }
+    
+    if (location) {
+        filtered = filtered.filter(item => 
+            item.location && item.location.toLowerCase().includes(location)
+        );
+    }
+    
+    if (dateRange) {
+        const now = new Date();
+        filtered = filtered.filter(item => {
+            const itemDate = new Date(item.found_date);
+            const diffDays = Math.floor((now - itemDate) / (1000 * 60 * 60 * 24));
+            
+            switch(dateRange) {
+                case 'today': return diffDays === 0;
+                case 'week': return diffDays <= 7;
+                case 'month': return diffDays <= 30;
+                case 'year': return diffDays <= 365;
+                default: return true;
+            }
+        });
+    }
+    
+    displayFoundItems(filtered);
+    updateSearchStats(filtered.length, allFoundItems.length);
+}
+
+function clearAllFilters() {
+    document.getElementById('filterColor').value = '';
+    document.getElementById('filterType').value = '';
+    document.getElementById('filterBrand').value = '';
+    document.getElementById('filterLocation').value = '';
+    document.getElementById('filterDate').value = '';
+    
+    displayFoundItems(allFoundItems);
+    updateSearchStats(allFoundItems.length, allFoundItems.length);
+}
+
+function updateSearchStats(shown, total) {
+    const statsContainer = document.getElementById('searchStats');
+    if (statsContainer) {
+        if (shown === total) {
+            statsContainer.innerHTML = `Showing all ${total} item${total !== 1 ? 's' : ''}`;
+        } else {
+            statsContainer.innerHTML = `Found ${shown} of ${total} item${total !== 1 ? 's' : ''} matching your search`;
+        }
+    }
+}
+
+// ========== DISPLAY FOUND ITEMS ==========
+function displayFoundItems(items) {
+    const container = document.getElementById('searchResults');
+    
+    if (!container) return;
+    
+    if (items.length === 0) {
+        container.innerHTML = '<div class="loading">No items found matching your search. Try different keywords or check back later.</div>';
+        return;
+    }
+    
+    container.innerHTML = items.map(item => `
+        <div class="item-card">
+            ${item.photo_url ? `<img src="${item.photo_url}" alt="${item.title}">` : '<div style="height:200px; background:#1a1a1a; display:flex; align-items:center; justify-content:center;">No image</div>'}
+            <div class="item-card-content">
+                <h3>${escapeHtml(item.title)}</h3>
+                <p><span class="label">Color:</span> ${escapeHtml(item.color)}</p>
+                ${item.brand ? `<p><span class="label">Brand:</span> ${escapeHtml(item.brand)}</p>` : ''}
+                <p><span class="label">Type:</span> ${escapeHtml(item.item_type || 'Other')}</p>
+                <p><span class="label">Description:</span> ${escapeHtml(item.public_description)}</p>
+                <p><span class="label">Location:</span> ${escapeHtml(item.location)}</p>
+                <p><span class="label">Found:</span> ${item.found_date} at ${item.found_time}</p>
+                <span class="badge badge-open">Available to Claim</span>
+                <button onclick="startVerification(${item.id})" style="margin-top: 15px; width: 100%;">Verify and Claim</button>
+            </div>
+        </div>
+    `).join('');
+}
+
+// ========== START VERIFICATION PROCESS ==========
+async function startVerification(itemId) {
+    try {
+        const itemResponse = await fetch(`/api/found-items/${itemId}`);
+        const item = await itemResponse.json();
+        
+        const questionsResponse = await fetch(`/api/items/${itemId}/questions`);
+        const questions = await questionsResponse.json();
+        
+        if (!questions || questions.length === 0) {
+            alert('No verification questions available for this item yet.');
+            return;
+        }
+        
+        const modalBody = document.getElementById('verifyModalBody');
+        modalBody.innerHTML = `
+            <div id="verificationQuestions">
+                <p style="margin-bottom: 15px; color: #d0c0a0;">Please answer these questions to verify you are the owner:</p>
+                ${questions.map((q, index) => `
+                    <div class="question-card">
+                        <p><strong>Question ${index + 1}:</strong> ${escapeHtml(q.question)}</p>
+                        <textarea id="answer_${q.id}" placeholder="Your answer..." rows="3"></textarea>
+                    </div>
+                `).join('')}
+            </div>
+            <button onclick="submitVerification(${itemId})" style="width: 100%; margin-top: 10px;">Submit Answers</button>
+        `;
+        document.getElementById('verifyModal').style.display = 'flex';
+    } catch (error) {
+        alert('Error loading verification questions');
+        console.error(error);
+    }
+}
+
+// ========== SUBMIT VERIFICATION ==========
+async function submitVerification(itemId) {
+    const questionDivs = document.querySelectorAll('#verificationQuestions .question-card');
+    const answers = [];
+    
+    for (let i = 0; i < questionDivs.length; i++) {
+        const textarea = questionDivs[i].querySelector('textarea');
+        const questionText = questionDivs[i].querySelector('p').innerText.replace('Question ' + (i+1) + ': ', '');
+        answers.push({ 
+            question: questionText, 
+            answer: textarea.value 
+        });
+    }
+    
+    const emptyAnswers = answers.filter(a => !a.answer.trim());
+    if (emptyAnswers.length > 0) {
+        alert('Please answer all questions before submitting.');
+        return;
+    }
+    
+    try {
+        const response = await fetch('/api/verify-claim', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ 
+                item_id: itemId, 
+                answers: answers,
+                claimant_id: currentUser.id 
+            })
+        });
+        
+        const data = await response.json();
+        
+        if (data.success) {
+            alert('Your claim has been submitted! An operator will review your answers and contact you.');
+            closeVerifyModal();
+            loadFoundItems();
+        } else {
+            alert('Error: ' + data.error);
+        }
+    } catch (error) {
+        alert('Error submitting claim. Please try again.');
+        console.error(error);
+    }
+}
+
+// ========== MODAL FUNCTIONS ==========
+function closeVerifyModal() {
+    document.getElementById('verifyModal').style.display = 'none';
+}
+
+// ========== HELPER FUNCTIONS ==========
+function escapeHtml(text) {
+    if (!text) return '';
+    const div = document.createElement('div');
+    div.textContent = text;
+    return div.innerHTML;
+}
+
+// Add Enter key support for search
+document.addEventListener('DOMContentLoaded', () => {
+    const searchInput = document.getElementById('searchKeyword');
+    if (searchInput) {
+        searchInput.addEventListener('keypress', function(e) {
+            if (e.key === 'Enter') {
+                performSearch();
+            }
+        });
+    }
+});
