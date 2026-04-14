@@ -164,3 +164,8 @@
     <script src="home-script.js"></script>
 </body>
 </html>
+<div class="nav-links">
+    <span class="user-info" id="userInfo"></span>
+    <a href="found.html" class="nav-btn">Browse Found Items</a>
+    <button class="nav-btn" onclick="logout()">Logout</button>
+</div>
