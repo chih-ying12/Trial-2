@@ -1,0 +1,62 @@
+// ========== USER LOGOUT PAGE SCRIPT ==========
+// No operator functionality - only for regular users
+
+// Countdown timer for automatic redirect
+let seconds = 5;
+const countdownElement = document.getElementById('countdown');
+
+const countdownInterval = setInterval(() => {
+    seconds--;
+    if (countdownElement) {
+        countdownElement.textContent = seconds;
+    }
+    
+    if (seconds <= 0) {
+        clearInterval(countdownInterval);
+        window.location.href = 'index.html';
+    }
+}, 1000);
+
+// Clear all user data on logout page load
+document.addEventListener('DOMContentLoaded', () => {
+    // Clear session storage
+    sessionStorage.clear();
+    
+    // Clear local storage
+    localStorage.clear();
+    
+    // Clear any cached user data
+    sessionStorage.removeItem('user');
+    sessionStorage.removeItem('token');
+    localStorage.removeItem('user');
+    localStorage.removeItem('token');
+    
+    // Call logout API to destroy server session
+    fetch('/api/logout', {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/json'
+        }
+    }).catch(error => {
+        console.error('Logout API error:', error);
+    });
+});
+
+// Prevent back button from going back to dashboard
+window.addEventListener('pageshow', (event) => {
+    if (event.persisted || performance.getEntriesByType('navigation')[0].type === 'back_forward') {
+        window.location.href = 'index.html';
+    }
+});
+
+// Disable browser back button from seeing cached pages
+history.pushState(null, null, location.href);
+window.onpopstate = function () {
+    history.go(1);
+};
+
+// Prevent user from accessing dashboard after logout
+window.addEventListener('beforeunload', () => {
+    sessionStorage.clear();
+    localStorage.clear();
+});
