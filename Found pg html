@@ -23,7 +23,7 @@
         <!-- Page Title -->
         <div class="page-header">
             <h1>Found Items</h1>
-            <p>Browse through items that have been found. Use the search engine to find your lost item.</p>
+            <p>Browse through items that have been found. Click on any item to claim it.</p>
         </div>
 
         <!-- Search Engine Section -->
@@ -31,7 +31,6 @@
             <div class="form-container">
                 <h2>Search for Your Lost Item</h2>
                 
-                <!-- Search Bar -->
                 <div class="search-bar">
                     <div class="form-group">
                         <label>Search by keyword</label>
@@ -43,7 +42,6 @@
                     </div>
                 </div>
 
-                <!-- Advanced Filters -->
                 <div class="advanced-filters">
                     <div class="filter-header">
                         <button onclick="toggleAdvancedFilters()" class="filter-toggle-btn">Advanced Filters ▼</button>
@@ -122,14 +120,31 @@
         </div>
     </div>
 
-    <!-- Modal for verification questions when claiming -->
-    <div id="verifyModal" class="modal">
+    <!-- Verification Questions Modal - Popup when claiming -->
+    <div id="verificationModal" class="modal">
         <div class="modal-content">
             <div class="modal-header">
                 <h3>Verify Ownership</h3>
-                <span class="close" onclick="closeVerifyModal()">&times;</span>
+                <span class="close" onclick="closeVerificationModal()">&times;</span>
             </div>
-            <div id="verifyModalBody"></div>
+            <div id="verificationModalBody">
+                <div class="loading">Loading verification questions...</div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Success Modal -->
+    <div id="successModal" class="modal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h3>Claim Submitted</h3>
+                <span class="close" onclick="closeSuccessModal()">&times;</span>
+            </div>
+            <div id="successModalBody">
+                <p>Your claim has been submitted successfully!</p>
+                <p>An operator will review your answers and contact you shortly.</p>
+                <button onclick="closeSuccessModal()" class="btn-primary" style="margin-top: 20px;">Close</button>
+            </div>
         </div>
     </div>
 
