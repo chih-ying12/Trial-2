@@ -1,0 +1,122 @@
+/* Add these styles to your existing style.css */
+
+/* ========== LOGOUT PAGE STYLES ========== */
+.logout-container {
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    min-height: 70vh;
+}
+
+.logout-icon {
+    margin-bottom: 30px;
+}
+
+.checkmark {
+    width: 80px;
+    height: 80px;
+    border-radius: 50%;
+    background-color: #2a5a2a;
+    border: 2px solid #4a8a4a;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    margin: 0 auto;
+    font-size: 48px;
+    color: #a0d0a0;
+    animation: fadeInScale 0.5s ease-out;
+}
+
+@keyframes fadeInScale {
+    from {
+        opacity: 0;
+        transform: scale(0.5);
+    }
+    to {
+        opacity: 1;
+        transform: scale(1);
+    }
+}
+
+.logout-message {
+    color: #b0b0b0;
+    margin: 20px 0;
+    line-height: 1.6;
+    font-size: 14px;
+}
+
+.logout-buttons {
+    display: flex;
+    gap: 15px;
+    justify-content: center;
+    margin: 30px 0 20px;
+}
+
+.logout-buttons a {
+    text-decoration: none;
+    padding: 12px 24px;
+    font-family: 'Courier Prime', monospace;
+    font-size: 14px;
+    cursor: pointer;
+    transition: all 0.3s;
+    display: inline-block;
+}
+
+.logout-buttons .btn-primary {
+    background-color: #3a5a3a;
+    color: #e0e0e0;
+    border: 1px solid #5a7a5a;
+}
+
+.logout-buttons .btn-primary:hover {
+    background-color: #4a6a4a;
+    border-color: #7a9a7a;
+}
+
+.logout-buttons .btn-secondary {
+    background-color: #2a2a4a;
+    color: #e0e0e0;
+    border: 1px solid #3a3a6a;
+}
+
+.logout-buttons .btn-secondary:hover {
+    background-color: #3a3a5a;
+    border-color: #5a5a8a;
+}
+
+.redirect-note {
+    color: #808080;
+    font-size: 12px;
+    margin-top: 20px;
+    padding-top: 15px;
+    border-top: 1px solid #4a4a4a;
+}
+
+#countdown {
+    font-weight: bold;
+    color: #d0c0a0;
+    font-size: 16px;
+}
+
+/* Responsive for logout page */
+@media (max-width: 768px) {
+    .logout-buttons {
+        flex-direction: column;
+        gap: 10px;
+    }
+    
+    .logout-buttons a {
+        width: 100%;
+        text-align: center;
+    }
+    
+    .checkmark {
+        width: 60px;
+        height: 60px;
+        font-size: 36px;
+    }
+    
+    .logout-container {
+        min-height: 60vh;
+    }
+}
