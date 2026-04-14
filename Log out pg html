@@ -1,0 +1,45 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Logged Out - Secure Lost and Found</title>
+    <link rel="stylesheet" href="style.css">
+</head>
+<body>
+    <div class="container">
+        <nav class="navbar">
+            <div class="logo">
+                Secure Lost and Found
+            </div>
+        </nav>
+
+        <div class="logout-container">
+            <div class="form-container" style="max-width: 500px; margin: 0 auto; text-align: center;">
+                <div class="logout-icon">
+                    <div class="checkmark">✓</div>
+                </div>
+                
+                <h2>Successfully Logged Out</h2>
+                
+                <p class="logout-message">
+                    You have been securely logged out of your account.
+                    <br>
+                    Your session has been terminated.
+                </p>
+                
+                <div class="logout-buttons">
+                    <a href="index.html" class="btn-primary">Login Again</a>
+                    <a href="index.html" class="btn-secondary">Return to Home</a>
+                </div>
+                
+                <p class="redirect-note">
+                    You will be automatically redirected to login page in <span id="countdown">5</span> seconds.
+                </p>
+            </div>
+        </div>
+    </div>
+
+    <script src="logout-script.js"></script>
+</body>
+</html>
