@@ -1,0 +1,24 @@
+// Check if user was redirected from logout page
+function checkLogoutStatus() {
+    const urlParams = new URLSearchParams(window.location.search);
+    if (urlParams.get('logout') === 'success') {
+        showAlert('You have been successfully logged out.', 'success');
+    }
+}
+
+// Clear any leftover user data on login page load
+function clearStoredUserData() {
+    sessionStorage.clear();
+    localStorage.clear();
+    sessionStorage.removeItem('user');
+    sessionStorage.removeItem('token');
+    localStorage.removeItem('user');
+    localStorage.removeItem('token');
+}
+
+// Call these when login page loads
+document.addEventListener('DOMContentLoaded', () => {
+    clearStoredUserData();
+    checkLogoutStatus();
+    checkAuth();
+});
