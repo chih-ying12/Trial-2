@@ -1,0 +1,53 @@
+// ========== SUBMIT CLAIM ENDPOINT ==========
+app.post('/api/submit-claim', (req, res) => {
+    const { item_id, claimant_id, claimant_name, answers, item_details } = req.body;
+    
+    if (!item_id || !claimant_id || !answers) {
+        return res.status(400).json({ error: 'Missing required fields' });
+    }
+    
+    // Store the claim in database
+    const claimData = {
+        item_id: item_id,
+        claimant_id: claimant_id,
+        claimant_name: claimant_name,
+        answers: JSON.stringify(answers),
+        item_details: JSON.stringify(item_details),
+        status: 'pending',
+        submitted_at: new Date().toISOString()
+    };
+    
+    db.run(`INSERT INTO claims (item_id, claimant_id, claimant_name, answers, item_details, status, submitted_at)
+            VALUES (?, ?, ?, ?, ?, ?, ?)`,
+        [claimData.item_id, claimData.claimant_id, claimData.claimant_name, 
+         claimData.answers, claimData.item_details, claimData.status, claimData.submitted_at],
+        function(err) {
+            if (err) {
+                console.error('Database error:', err);
+                return res.status(500).json({ error: 'Failed to submit claim' });
+            }
+            
+            // Update the found item status to 'pending'
+            db.run(`UPDATE found_items SET status = 'pending_claim' WHERE id = ?`, [item_id]);
+            
+            res.json({ 
+                success: true, 
+                claim_id: this.lastID,
+                message: 'Claim submitted successfully. An operator will review your answers.'
+            });
+        });
+});
+
+// Create claims table if not exists
+db.run(`CREATE TABLE IF NOT EXISTS claims (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    item_id INTEGER,
+    claimant_id INTEGER,
+    claimant_name TEXT,
+    answers TEXT,
+    item_details TEXT,
+    status TEXT DEFAULT 'pending',
+    submitted_at DATETIME,
+    reviewed_at DATETIME,
+    reviewer_notes TEXT
+)`);
