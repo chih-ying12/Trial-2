@@ -1,0 +1,130 @@
+// ========== AUTHENTICATION FUNCTIONS ==========
+
+function switchAuthTab(tab) {
+    const tabs = document.querySelectorAll('.tab');
+    const contents = document.querySelectorAll('.tab-content');
+    
+    tabs.forEach(t => t.classList.remove('active'));
+    contents.forEach(c => c.classList.remove('active'));
+    
+    if (tab === 'login') {
+        tabs[0].classList.add('active');
+        document.getElementById('loginForm').classList.add('active');
+    } else {
+        tabs[1].classList.add('active');
+        document.getElementById('registerForm').classList.add('active');
+    }
+}
+
+async function login(event) {
+    event.preventDefault();
+    
+    const username = document.getElementById('loginUsername').value;
+    const password = document.getElementById('loginPassword').value;
+    
+    if (!username || !password) {
+        showAlert('Please enter both username and password', 'error');
+        return;
+    }
+    
+    try {
+        const response = await fetch('/api/login', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ username, password })
+        });
+        
+        const data = await response.json();
+        
+        if (data.success) {
+            showAlert('Login successful! Redirecting...', 'success');
+            setTimeout(() => {
+                window.location.href = 'home.html';
+            }, 1000);
+        } else {
+            showAlert('Login failed: ' + data.error, 'error');
+        }
+    } catch (error) {
+        showAlert('Login failed. Please make sure the server is running.', 'error');
+        console.error('Login error:', error);
+    }
+}
+
+async function register(event) {
+    event.preventDefault();
+    
+    const username = document.getElementById('regUsername').value;
+    const email = document.getElementById('regEmail').value;
+    const password = document.getElementById('regPassword').value;
+    
+    if (!username || !email || !password) {
+        showAlert('Please fill in all fields', 'error');
+        return;
+    }
+    
+    if (password.length < 4) {
+        showAlert('Password must be at least 4 characters', 'error');
+        return;
+    }
+    
+    try {
+        const response = await fetch('/api/register', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ username, email, password })
+        });
+        
+        const data = await response.json();
+        
+        if (data.success) {
+            showAlert('Registration successful! Please login.', 'success');
+            document.getElementById('regUsername').value = '';
+            document.getElementById('regEmail').value = '';
+            document.getElementById('regPassword').value = '';
+            switchAuthTab('login');
+        } else {
+            showAlert('Registration failed: ' + data.error, 'error');
+        }
+    } catch (error) {
+        showAlert('Registration failed. Please make sure the server is running.', 'error');
+        console.error('Registration error:', error);
+    }
+}
+
+function showAlert(message, type) {
+    const container = document.getElementById('authContainer');
+    
+    // Remove existing alerts
+    const existingAlerts = document.querySelectorAll('.alert');
+    existingAlerts.forEach(alert => alert.remove());
+    
+    const alertDiv = document.createElement('div');
+    alertDiv.className = `alert alert-${type}`;
+    alertDiv.innerHTML = message;
+    
+    container.insertBefore(alertDiv, container.firstChild);
+    
+    setTimeout(() => {
+        alertDiv.remove();
+    }, 3000);
+}
+
+// Check if user is already logged in
+async function checkAuth() {
+    try {
+        const response = await fetch('/api/me');
+        const user = await response.json();
+        
+        if (user) {
+            // User is already logged in, redirect to home
+            window.location.href = 'home.html';
+        }
+    } catch (error) {
+        console.error('Auth check failed:', error);
+    }
+}
+
+// Run auth check when page loads
+document.addEventListener('DOMContentLoaded', () => {
+    checkAuth();
+});
