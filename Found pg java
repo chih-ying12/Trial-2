@@ -1,6 +1,7 @@
 // Global variables
 let currentUser = null;
 let allFoundItems = [];
+let currentClaimItem = null;
 
 // ========== INITIALIZATION ==========
 document.addEventListener('DOMContentLoaded', () => {
@@ -189,95 +190,220 @@ function displayFoundItems(items) {
                 <p><span class="label">Location:</span> ${escapeHtml(item.location)}</p>
                 <p><span class="label">Found:</span> ${item.found_date} at ${item.found_time}</p>
                 <span class="badge badge-open">Available to Claim</span>
-                <button onclick="startVerification(${item.id})" style="margin-top: 15px; width: 100%;">Verify and Claim</button>
+                <button onclick="openVerificationModal(${item.id})" class="claim-btn">Claim This Item</button>
             </div>
         </div>
     `).join('');
 }
 
-// ========== START VERIFICATION PROCESS ==========
-async function startVerification(itemId) {
+// ========== VERIFICATION MODAL - POPUP ==========
+async function openVerificationModal(itemId) {
     try {
+        // Fetch item details
         const itemResponse = await fetch(`/api/found-items/${itemId}`);
         const item = await itemResponse.json();
+        currentClaimItem = item;
         
-        const questionsResponse = await fetch(`/api/items/${itemId}/questions`);
-        const questions = await questionsResponse.json();
+        // Generate verification questions based on item type
+        const questions = generateVerificationQuestions(item);
         
-        if (!questions || questions.length === 0) {
-            alert('No verification questions available for this item yet.');
-            return;
-        }
-        
-        const modalBody = document.getElementById('verifyModalBody');
+        // Display modal with questions
+        const modalBody = document.getElementById('verificationModalBody');
         modalBody.innerHTML = `
-            <div id="verificationQuestions">
-                <p style="margin-bottom: 15px; color: #d0c0a0;">Please answer these questions to verify you are the owner:</p>
-                ${questions.map((q, index) => `
-                    <div class="question-card">
-                        <p><strong>Question ${index + 1}:</strong> ${escapeHtml(q.question)}</p>
-                        <textarea id="answer_${q.id}" placeholder="Your answer..." rows="3"></textarea>
-                    </div>
-                `).join('')}
+            <div class="item-summary">
+                <h4>Item: ${escapeHtml(item.title)}</h4>
+                <p><strong>Color:</strong> ${escapeHtml(item.color)}</p>
+                <p><strong>Location found:</strong> ${escapeHtml(item.location)}</p>
+                <p><strong>Date found:</strong> ${item.found_date}</p>
             </div>
-            <button onclick="submitVerification(${itemId})" style="width: 100%; margin-top: 10px;">Submit Answers</button>
+            <div class="verification-questions">
+                <p class="instruction">Please answer these questions to verify you are the owner. Your answers will be compared with private information provided by the finder.</p>
+                <form id="verificationForm">
+                    ${questions.map((q, index) => `
+                        <div class="question-card">
+                            <label class="question-label">Question ${index + 1}: ${escapeHtml(q.question)}</label>
+                            <textarea class="answer-input" data-question="${escapeHtml(q.question)}" rows="3" placeholder="Type your answer here..." required></textarea>
+                        </div>
+                    `).join('')}
+                    <div class="modal-buttons">
+                        <button type="button" onclick="closeVerificationModal()" class="btn-secondary">Cancel</button>
+                        <button type="button" onclick="submitVerification(${itemId})" class="btn-primary">Submit Claim</button>
+                    </div>
+                </form>
+            </div>
         `;
-        document.getElementById('verifyModal').style.display = 'flex';
+        
+        document.getElementById('verificationModal').style.display = 'flex';
+        
     } catch (error) {
-        alert('Error loading verification questions');
-        console.error(error);
+        console.error('Error opening verification modal:', error);
+        alert('Error loading verification questions. Please try again.');
     }
+}
+
+// ========== GENERATE VERIFICATION QUESTIONS ==========
+function generateVerificationQuestions(item) {
+    const questions = [];
+    const itemType = item.item_type;
+    
+    // Get private verification info
+    let privateInfo = {};
+    try {
+        privateInfo = JSON.parse(item.verification_info || '{}');
+    } catch(e) {
+        privateInfo = {};
+    }
+    
+    // Generate questions based on item type
+    if (itemType === 'electronic') {
+        if (privateInfo.wallpaper && privateInfo.wallpaper.trim()) {
+            questions.push({
+                question: `Describe the wallpaper or lock screen image on this device.`,
+                expectedAnswer: privateInfo.wallpaper
+            });
+        }
+        if (privateInfo.passcode && privateInfo.passcode.trim()) {
+            questions.push({
+                question: `What is the device passcode or pattern?`,
+                expectedAnswer: privateInfo.passcode
+            });
+        }
+        questions.push({
+            question: `What color is this device?`,
+            expectedAnswer: item.color
+        });
+        questions.push({
+            question: `What apps or folders are on the home screen?`,
+            expectedAnswer: null
+        });
+        questions.push({
+            question: `Are there any scratches or unique marks on this device? Describe them.`,
+            expectedAnswer: null
+        });
+    } 
+    else if (itemType === 'money') {
+        if (privateInfo.amount && privateInfo.amount > 0) {
+            questions.push({
+                question: `What is the exact amount of money in this item?`,
+                expectedAnswer: privateInfo.amount.toString()
+            });
+        }
+        if (privateInfo.currency && privateInfo.currency !== '') {
+            questions.push({
+                question: `What currency type is the money?`,
+                expectedAnswer: privateInfo.currency
+            });
+        }
+        questions.push({
+            question: `What color is the wallet or container?`,
+            expectedAnswer: item.color
+        });
+        questions.push({
+            question: `Describe any unique features of the money (folded, crumpled, special notes, etc.)`,
+            expectedAnswer: null
+        });
+    }
+    else {
+        if (privateInfo.uniqueFeature && privateInfo.uniqueFeature.trim()) {
+            questions.push({
+                question: `Describe the unique identifying feature of this item.`,
+                expectedAnswer: privateInfo.uniqueFeature
+            });
+        }
+        questions.push({
+            question: `What color is this item?`,
+            expectedAnswer: item.color
+        });
+        questions.push({
+            question: `Are there any scratches, marks, or damages on this item? Describe them.`,
+            expectedAnswer: null
+        });
+        questions.push({
+            question: `What is inside this item (if applicable)?`,
+            expectedAnswer: null
+        });
+    }
+    
+    // Add a general question
+    questions.push({
+        question: `Is there anything else unique about this item that only the owner would know?`,
+        expectedAnswer: null
+    });
+    
+    // Limit to 5 questions
+    return questions.slice(0, 5);
 }
 
 // ========== SUBMIT VERIFICATION ==========
 async function submitVerification(itemId) {
-    const questionDivs = document.querySelectorAll('#verificationQuestions .question-card');
+    // Collect all answers
+    const answerTextareas = document.querySelectorAll('.answer-input');
     const answers = [];
     
-    for (let i = 0; i < questionDivs.length; i++) {
-        const textarea = questionDivs[i].querySelector('textarea');
-        const questionText = questionDivs[i].querySelector('p').innerText.replace('Question ' + (i+1) + ': ', '');
-        answers.push({ 
-            question: questionText, 
-            answer: textarea.value 
+    for (let textarea of answerTextareas) {
+        const question = textarea.getAttribute('data-question');
+        const answer = textarea.value.trim();
+        
+        if (!answer) {
+            alert('Please answer all questions before submitting.');
+            return;
+        }
+        
+        answers.push({
+            question: question,
+            answer: answer
         });
     }
     
-    const emptyAnswers = answers.filter(a => !a.answer.trim());
-    if (emptyAnswers.length > 0) {
-        alert('Please answer all questions before submitting.');
-        return;
-    }
+    // Show loading state
+    const submitBtn = document.querySelector('#verificationModal .btn-primary');
+    const originalText = submitBtn.innerText;
+    submitBtn.innerText = 'Submitting...';
+    submitBtn.disabled = true;
     
     try {
-        const response = await fetch('/api/verify-claim', {
+        const response = await fetch('/api/submit-claim', {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ 
-                item_id: itemId, 
+            body: JSON.stringify({
+                item_id: itemId,
+                claimant_id: currentUser.id,
+                claimant_name: currentUser.username,
                 answers: answers,
-                claimant_id: currentUser.id 
+                item_details: currentClaimItem
             })
         });
         
         const data = await response.json();
         
         if (data.success) {
-            alert('Your claim has been submitted! An operator will review your answers and contact you.');
-            closeVerifyModal();
-            loadFoundItems();
+            closeVerificationModal();
+            showSuccessModal();
         } else {
-            alert('Error: ' + data.error);
+            alert('Error submitting claim: ' + data.error);
         }
     } catch (error) {
+        console.error('Error submitting claim:', error);
         alert('Error submitting claim. Please try again.');
-        console.error(error);
+    } finally {
+        submitBtn.innerText = originalText;
+        submitBtn.disabled = false;
     }
 }
 
 // ========== MODAL FUNCTIONS ==========
-function closeVerifyModal() {
-    document.getElementById('verifyModal').style.display = 'none';
+function closeVerificationModal() {
+    document.getElementById('verificationModal').style.display = 'none';
+    currentClaimItem = null;
+}
+
+function showSuccessModal() {
+    document.getElementById('successModal').style.display = 'flex';
+}
+
+function closeSuccessModal() {
+    document.getElementById('successModal').style.display = 'none';
+    loadFoundItems(); // Refresh the list
 }
 
 // ========== HELPER FUNCTIONS ==========
@@ -298,4 +424,17 @@ document.addEventListener('DOMContentLoaded', () => {
             }
         });
     }
+    
+    // Close modal when clicking outside
+    window.onclick = function(event) {
+        const verificationModal = document.getElementById('verificationModal');
+        const successModal = document.getElementById('successModal');
+        
+        if (event.target === verificationModal) {
+            closeVerificationModal();
+        }
+        if (event.target === successModal) {
+            closeSuccessModal();
+        }
+    };
 });
