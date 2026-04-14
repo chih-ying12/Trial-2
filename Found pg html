@@ -1,0 +1,138 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Secure Lost and Found - Found Items</title>
+    <link rel="stylesheet" href="style.css">
+</head>
+<body>
+    <div class="container">
+        <!-- Navigation Bar -->
+        <nav class="navbar">
+            <div class="logo">
+                Secure Lost and Found
+            </div>
+            <div class="nav-links">
+                <span class="user-info" id="userInfo"></span>
+                <a href="home.html" class="nav-btn">Report Found</a>
+                <button class="nav-btn" onclick="logout()">Logout</button>
+            </div>
+        </nav>
+
+        <!-- Page Title -->
+        <div class="page-header">
+            <h1>Found Items</h1>
+            <p>Browse through items that have been found. Use the search engine to find your lost item.</p>
+        </div>
+
+        <!-- Search Engine Section -->
+        <div class="search-engine-container">
+            <div class="form-container">
+                <h2>Search for Your Lost Item</h2>
+                
+                <!-- Search Bar -->
+                <div class="search-bar">
+                    <div class="form-group">
+                        <label>Search by keyword</label>
+                        <div class="search-input-group">
+                            <input type="text" id="searchKeyword" placeholder="Enter keywords like: black backpack, silver ipad, red wallet..." class="search-input">
+                            <button onclick="performSearch()" class="btn-primary">Search</button>
+                            <button onclick="clearSearch()" class="btn-secondary">Clear</button>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Advanced Filters -->
+                <div class="advanced-filters">
+                    <div class="filter-header">
+                        <button onclick="toggleAdvancedFilters()" class="filter-toggle-btn">Advanced Filters ▼</button>
+                    </div>
+                    <div id="advancedFilters" class="filter-content hidden">
+                        <div class="filter-row">
+                            <div class="filter-group">
+                                <label>Color</label>
+                                <select id="filterColor">
+                                    <option value="">All Colors</option>
+                                    <option value="black">Black</option>
+                                    <option value="white">White</option>
+                                    <option value="red">Red</option>
+                                    <option value="blue">Blue</option>
+                                    <option value="green">Green</option>
+                                    <option value="yellow">Yellow</option>
+                                    <option value="brown">Brown</option>
+                                    <option value="gray">Gray</option>
+                                    <option value="silver">Silver</option>
+                                    <option value="gold">Gold</option>
+                                    <option value="pink">Pink</option>
+                                    <option value="purple">Purple</option>
+                                    <option value="orange">Orange</option>
+                                </select>
+                            </div>
+                            
+                            <div class="filter-group">
+                                <label>Item Type</label>
+                                <select id="filterType">
+                                    <option value="">All Types</option>
+                                    <option value="electronic">Electronic</option>
+                                    <option value="money">Money Related</option>
+                                    <option value="other">Other</option>
+                                </select>
+                            </div>
+                            
+                            <div class="filter-group">
+                                <label>Brand</label>
+                                <input type="text" id="filterBrand" placeholder="e.g., Apple, Nike, Samsung">
+                            </div>
+                        </div>
+                        
+                        <div class="filter-row">
+                            <div class="filter-group">
+                                <label>Location</label>
+                                <input type="text" id="filterLocation" placeholder="Where was it found?">
+                            </div>
+                            
+                            <div class="filter-group">
+                                <label>Date Range</label>
+                                <select id="filterDate">
+                                    <option value="">Any Time</option>
+                                    <option value="today">Today</option>
+                                    <option value="week">Last 7 Days</option>
+                                    <option value="month">Last 30 Days</option>
+                                    <option value="year">Last Year</option>
+                                </select>
+                            </div>
+                        </div>
+                        
+                        <div class="filter-buttons">
+                            <button onclick="applyAdvancedFilters()" class="btn-primary">Apply Filters</button>
+                            <button onclick="clearAllFilters()" class="btn-secondary">Clear All Filters</button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Search Results Stats -->
+        <div id="searchStats" class="search-stats"></div>
+
+        <!-- Search Results Grid -->
+        <div id="searchResults" class="items-grid">
+            <div class="loading">Loading found items...</div>
+        </div>
+    </div>
+
+    <!-- Modal for verification questions when claiming -->
+    <div id="verifyModal" class="modal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h3>Verify Ownership</h3>
+                <span class="close" onclick="closeVerifyModal()">&times;</span>
+            </div>
+            <div id="verifyModalBody"></div>
+        </div>
+    </div>
+
+    <script src="found-script.js"></script>
+</body>
+</html>
