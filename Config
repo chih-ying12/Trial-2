@@ -1,0 +1,17 @@
+# Disable Jekyll plugins that are causing issues
+theme: jekyll-theme-primer
+
+# Exclude files that shouldn't be processed
+exclude:
+  - package.json
+  - server.js
+  - .env
+  - node_modules
+
+# Keep these files as-is
+keep_files:
+  - uploads
+
+# Don't process these file types
+include:
+  - .nojekyll
